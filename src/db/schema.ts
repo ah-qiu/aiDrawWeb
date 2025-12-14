@@ -120,6 +120,25 @@ export const generations = pgTable('generations', {
 });
 
 // =========================================
+// 点赞记录表
+// =========================================
+export const likes = pgTable(
+    'likes',
+    {
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'cascade' }),
+        generationId: uuid('generation_id')
+            .notNull()
+            .references(() => generations.id, { onDelete: 'cascade' }),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (t) => [
+        primaryKey({ columns: [t.userId, t.generationId] }), // 联合主键，防止重复点赞
+    ]
+);
+
+// =========================================
 // 关系定义
 // =========================================
 
@@ -129,6 +148,7 @@ export const usersRelations = relations(users, ({ many }) => ({
     sessions: many(sessions),
     transactions: many(transactions),
     generations: many(generations),
+    likes: many(likes),
 }));
 
 // 账户关系
@@ -156,10 +176,23 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
 }));
 
 // 生图记录关系
-export const generationsRelations = relations(generations, ({ one }) => ({
+export const generationsRelations = relations(generations, ({ one, many }) => ({
     user: one(users, {
         fields: [generations.userId],
         references: [users.id],
+    }),
+    likes: many(likes),
+}));
+
+// 点赞关系
+export const likesRelations = relations(likes, ({ one }) => ({
+    user: one(users, {
+        fields: [likes.userId],
+        references: [users.id],
+    }),
+    generation: one(generations, {
+        fields: [likes.generationId],
+        references: [generations.id],
     }),
 }));
 
@@ -172,3 +205,5 @@ export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
 export type Generation = typeof generations.$inferSelect;
 export type NewGeneration = typeof generations.$inferInsert;
+export type Like = typeof likes.$inferSelect;
+export type NewLike = typeof likes.$inferInsert;

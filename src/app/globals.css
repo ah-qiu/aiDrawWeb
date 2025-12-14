@@ -1,30 +1,87 @@
 @import "tailwindcss";
 
 :root {
+    /* Default Dark Mode Variables */
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    /* Gradient Background */
+    --bg-gradient-start: #1a1a2e;
+    --bg-gradient-end: #0a0a0a;
+
+    /* Glass Card */
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+
+    /* Input Fields */
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --input-border: rgba(255, 255, 255, 0.1);
+    --input-text: white;
+    --input-focus-border: rgba(168, 85, 247, 0.5);
+
+    /* Secondary Button */
+    --btn-secondary-bg: rgba(255, 255, 255, 0.05);
+    --btn-secondary-border: rgba(255, 255, 255, 0.1);
+    --btn-secondary-text: white;
+    --btn-secondary-hover: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='light'] {
+    /* 浅色模式覆盖 - 创意工坊风格 */
+    --background: #ffffff;
+    --foreground: #020617;
+    /* 极深蓝黑，确保高对比度 */
+
+    /* 渐变背景 - 极光晨曦 */
+    /* 使用更鲜艳的淡紫色到淡粉色的过渡，避免无聊的灰色调 */
+    --bg-gradient-start: #e9d5ff;
+    /* 柔和紫 */
+    --bg-gradient-end: #fff1f2;
+    /* 玫瑰白 */
+
+    /* 玻璃拟态卡片 (高透亮白) */
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(139, 92, 246, 0.2);
+    /* 带有品牌色倾向的边框 */
+
+    /* 输入框 */
+    --input-bg: rgba(255, 255, 255, 0.9);
+    --input-border: rgba(0, 0, 0, 0.15);
+    /* 加深边框以提高辨识度 */
+    --input-text: #020617;
+    --input-focus-border: #7c3aed;
+
+    /* 次要按钮 */
+    --btn-secondary-bg: white;
+    --btn-secondary-border: rgba(139, 92, 246, 0.25);
+    --btn-secondary-text: #4c1d95;
+    /* 深紫色文字，呼应品牌 */
+    --btn-secondary-hover: #f5f3ff;
 }
 
 body {
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-geist-sans), Arial, sans-serif;
+    transition: background-color 0.3s, color 0.3s;
 }
 
 /* 渐变背景 */
 .gradient-bg {
-    background: radial-gradient(ellipse at top, #1a1a2e 0%, #0a0a0a 50%);
+    background: radial-gradient(ellipse at top, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 50%);
+    transition: background 0.3s;
 }
 
 /* 玻璃拟态卡片 */
 .glass-card {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--glass-bg);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
+    transition: background-color 0.3s, border-color 0.3s;
 }
 
-/* 渐变文字 */
+/* 渐变文字 - Keep same for both themes or adjust? Keeping for now as it pops on both */
 .gradient-text {
     background: linear-gradient(135deg, #a855f7, #3b82f6);
     -webkit-background-clip: text;
@@ -32,7 +89,7 @@ body {
     background-clip: text;
 }
 
-/* 主按钮 */
+/* 主按钮 - Keep consistent */
 .btn-primary {
     background: linear-gradient(135deg, #a855f7, #3b82f6);
     color: white;
@@ -49,31 +106,31 @@ body {
 
 /* 次要按钮 */
 .btn-secondary {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--btn-secondary-bg);
+    border: 1px solid var(--btn-secondary-border);
+    color: var(--btn-secondary-text);
     padding: 12px 28px;
     border-radius: 12px;
     font-weight: 500;
-    transition: all 0.2s;
+    transition: all 0.3s;
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--btn-secondary-hover);
 }
 
 /* 输入框 */
 .input-field {
     width: 100%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
     border-radius: 12px;
     padding: 12px 16px;
-    color: white;
-    transition: border-color 0.2s;
+    color: var(--input-text);
+    transition: border-color 0.2s, background-color 0.3s;
 }
 
 .input-field:focus {
     outline: none;
-    border-color: rgba(168, 85, 247, 0.5);
+    border-color: var(--input-focus-border);
 }
