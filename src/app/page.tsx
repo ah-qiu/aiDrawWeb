@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { auth } from '@/auth';
+import { ThemeToggle } from './components/ThemeToggle';
 
 export default async function Home() {
     const session = await auth();
@@ -27,6 +28,7 @@ export default async function Home() {
                             登录
                         </Link>
                     )}
+                    <ThemeToggle />
                 </nav>
             </header>
 
