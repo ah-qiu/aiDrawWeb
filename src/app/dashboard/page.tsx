@@ -1,7 +1,7 @@
 import { auth, signOut } from '@/auth';
 import { db } from '@/db';
-import { users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { users, generations, likes } from '@/db/schema';
+import { eq, count } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CheckInButton } from './components/CheckInButton';
@@ -22,6 +22,23 @@ export default async function DashboardPage() {
     if (!userData) {
         redirect('/auth/signin');
     }
+
+    const [generationsData] = await db
+        .select({ count: count() })
+        .from(generations)
+        .where(eq(generations.userId, session.user.id));
+
+    const generationCount = generationsData?.count ?? 0;
+
+    // 获取总获赞数
+    // 统计该用户所有作品的获赞数总和
+    const [likesData] = await db
+        .select({ count: count() })
+        .from(likes)
+        .innerJoin(generations, eq(likes.generationId, generations.id))
+        .where(eq(generations.userId, session.user.id));
+
+    const totalLikesReceived = likesData?.count ?? 0;
 
     return (
         <main className="relative min-h-screen px-6 py-12">
@@ -100,11 +117,11 @@ export default async function DashboardPage() {
                             <div className="text-zinc-400 text-sm">可用积分</div>
                         </div>
                         <div className="glass-card p-4 text-center">
-                            <div className="text-3xl font-bold text-purple-400 mb-1">0</div>
+                            <div className="text-3xl font-bold text-purple-400 mb-1">{generationCount}</div>
                             <div className="text-zinc-400 text-sm">生成作品</div>
                         </div>
                         <div className="glass-card p-4 text-center">
-                            <div className="text-3xl font-bold text-green-400 mb-1">0</div>
+                            <div className="text-3xl font-bold text-green-400 mb-1">{totalLikesReceived}</div>
                             <div className="text-zinc-400 text-sm">获得点赞</div>
                         </div>
                         <div className="glass-card p-4 text-center">
