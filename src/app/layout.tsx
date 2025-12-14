@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import { ThemeToggle } from "./components/ThemeToggle";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -24,9 +23,6 @@ export default function RootLayout({
             <body className={`${inter.variable} font-sans antialiased gradient-bg min-h-screen`}>
                 <Providers>
                     <div className="fixed inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
-                    <div className="fixed top-4 right-4 z-50">
-                        <ThemeToggle />
-                    </div>
                     <div className="relative z-10">{children}</div>
                 </Providers>
             </body>

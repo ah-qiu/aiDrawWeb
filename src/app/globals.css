@@ -26,7 +26,7 @@
     --btn-secondary-hover: rgba(255, 255, 255, 0.1);
 }
 
-[data-theme='light'] {
+:root[class~="light"] {
     /* 浅色模式覆盖 - 创意工坊风格 */
     --background: #ffffff;
     --foreground: #020617;
