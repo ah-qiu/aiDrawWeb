@@ -72,7 +72,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     id: user.id,
                     email: user.email,
                     name: user.name,
-                    image: user.image,
+                    // 不返回 image，避免 Base64 进入 JWT token
                 };
             },
         }),
@@ -82,10 +82,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (user) {
                 token.id = user.id;
             }
-            // 处理 session update 调用
+            // 处理 session update 调用 - 只更新 name，不更新 image（image 通过 API 获取）
             if (trigger === 'update' && session) {
                 if (session.name) token.name = session.name;
-                if (session.image !== undefined) token.image = session.image;
+                // 不要把 image 存入 token，避免 cookie 过大
             }
             return token;
         },
