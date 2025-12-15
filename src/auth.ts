@@ -85,8 +85,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // 处理 session update 调用 - 只更新 name，不更新 image（image 通过 API 获取）
             if (trigger === 'update' && session) {
                 if (session.name) token.name = session.name;
-                // 不要把 image 存入 token，避免 cookie 过大
             }
+            // 关键：始终删除 token 中的图片字段，避免 Base64 进入 JWT cookie
+            delete (token as any).image;
+            delete (token as any).picture;
             return token;
         },
         session: async ({ session, token }) => {
