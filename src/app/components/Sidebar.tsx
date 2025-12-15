@@ -21,19 +21,17 @@ export function Sidebar() {
     const { data: session } = useSession();
     const [avatar, setAvatar] = useState<string | null>(null);
 
-    // 如果 session 中头像是 __BASE64__ 标记，则从 API 获取实际头像
+    // 用户登录后从 API 获取头像（session 中不再包含 image）
     useEffect(() => {
-        if (session?.user?.image === '__BASE64__') {
+        if (session?.user?.id) {
             fetch('/api/user/avatar')
                 .then(res => res.json())
                 .then(data => {
                     if (data.image) setAvatar(data.image);
                 })
                 .catch(console.error);
-        } else if (session?.user?.image && session.user.image !== '__BASE64__') {
-            setAvatar(session.user.image);
         }
-    }, [session?.user?.image]);
+    }, [session?.user?.id]);
 
     const toggleSidebar = () => setIsOpen(!isOpen);
 

@@ -95,22 +95,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (session.user && token.id) {
                 session.user.id = token.id as string;
 
-                // 从数据库获取最新的用户信息
+                // 从数据库只获取 name（不获取 image，避免 Base64 进入 session）
                 const [dbUser] = await db
-                    .select({ name: users.name, image: users.image })
+                    .select({ name: users.name })
                     .from(users)
                     .where(eq(users.id, token.id as string));
 
                 if (dbUser) {
                     session.user.name = dbUser.name;
-                    // 只有非 Base64 的图片 URL 才放入 session，避免 cookie 过大
-                    if (dbUser.image && !dbUser.image.startsWith('data:')) {
-                        session.user.image = dbUser.image;
-                    } else {
-                        // Base64 图片标记为需要单独获取
-                        session.user.image = dbUser.image ? '__BASE64__' : null;
-                    }
                 }
+                // image 完全不放入 session，由前端通过 /api/user/avatar 单独获取
+                session.user.image = undefined;
             }
             return session;
         },
