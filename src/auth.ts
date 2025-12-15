@@ -78,15 +78,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }),
     ],
     callbacks: {
-        jwt: async ({ token, user }) => {
+        jwt: async ({ token, user, trigger, session }) => {
             if (user) {
                 token.id = user.id;
+            }
+            // 处理 session update 调用
+            if (trigger === 'update' && session) {
+                if (session.name) token.name = session.name;
+                if (session.image !== undefined) token.image = session.image;
             }
             return token;
         },
         session: async ({ session, token }) => {
             if (session.user && token.id) {
                 session.user.id = token.id as string;
+
+                // 从数据库获取最新的用户信息
+                const [dbUser] = await db
+                    .select({ name: users.name, image: users.image })
+                    .from(users)
+                    .where(eq(users.id, token.id as string));
+
+                if (dbUser) {
+                    session.user.name = dbUser.name;
+                    session.user.image = dbUser.image;
+                }
             }
             return session;
         },

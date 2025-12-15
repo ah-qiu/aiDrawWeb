@@ -22,6 +22,25 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: '密码至少需要 6 位' }, { status: 400 });
         }
 
+        // 检查60秒发送频率限制
+        const [existingToken] = await db
+            .select()
+            .from(verificationTokens)
+            .where(eq(verificationTokens.identifier, email));
+
+        if (existingToken) {
+            const tokenCreatedAt = new Date(existingToken.expires.getTime() - 24 * 60 * 60 * 1000); // 反推创建时间
+            const secondsSinceCreated = (Date.now() - tokenCreatedAt.getTime()) / 1000;
+            const remainingSeconds = Math.ceil(60 - secondsSinceCreated);
+
+            if (remainingSeconds > 0) {
+                return NextResponse.json(
+                    { error: `请等待 ${remainingSeconds} 秒后再发送`, cooldown: remainingSeconds },
+                    { status: 429 }
+                );
+            }
+        }
+
         // 检查邮箱是否已存在
         const [existingUser] = await db
             .select()
@@ -63,7 +82,7 @@ export async function POST(request: Request) {
         // 发送验证邮件
         if (process.env.AUTH_RESEND_KEY) {
             await resend.emails.send({
-                from: process.env.AUTH_EMAIL_FROM || 'AI画图工坊 <onboarding@resend.dev>',
+                from: process.env.AUTH_EMAIL_FROM || 'AI画图工坊 <noreply@aiqiumagic.dpdns.org>',
                 to: email,
                 subject: '验证你的邮箱 - AI 画图工坊',
                 html: `

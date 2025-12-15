@@ -1,18 +1,82 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { AvatarCropModal } from '@/app/components/AvatarCropModal';
+
+// 支持的图片格式
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_SIZE_KB = 200;
+
+// 图片压缩函数
+async function compressImage(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        // 验证文件类型
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            reject(new Error('不支持的图片格式，请上传 JPG、PNG、GIF 或 WebP 格式'));
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject(new Error('无法创建画布'));
+                    return;
+                }
+
+                // 计算压缩后的尺寸（最大边不超过 800px）
+                let { width, height } = img;
+                const maxDimension = 800;
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = (height / width) * maxDimension;
+                        width = maxDimension;
+                    } else {
+                        width = (width / height) * maxDimension;
+                        height = maxDimension;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // 逐步降低质量直到满足大小要求
+                let quality = 0.9;
+                let result = canvas.toDataURL('image/jpeg', quality);
+
+                while (result.length > MAX_SIZE_KB * 1024 * 1.37 && quality > 0.1) {
+                    quality -= 0.1;
+                    result = canvas.toDataURL('image/jpeg', quality);
+                }
+
+                resolve(result);
+            };
+            img.onerror = () => reject(new Error('图片加载失败'));
+            img.src = e.target?.result as string;
+        };
+        reader.onerror = () => reject(new Error('文件读取失败'));
+        reader.readAsDataURL(file);
+    });
+}
 
 export default function SettingsPage() {
     const { data: session, update } = useSession();
     const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Profile State
     const [name, setName] = useState(session?.user?.name || '');
     const [image, setImage] = useState(session?.user?.image || '');
     const [isProfileLoading, setIsProfileLoading] = useState(false);
     const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
+    const [isUploading, setIsUploading] = useState(false);
+    const [cropImageSrc, setCropImageSrc] = useState<string | null>(null); // 裁剪弹窗图片源
 
     // Password State
     const [currentPassword, setCurrentPassword] = useState('');
@@ -20,6 +84,50 @@ export default function SettingsPage() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isPasswordLoading, setIsPasswordLoading] = useState(false);
     const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
+
+    // Handle Avatar Upload - 读取文件并显示裁剪弹窗
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // 验证文件类型
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            setProfileMessage({ type: 'error', text: '不支持的图片格式，请上传 JPG、PNG、GIF 或 WebP 格式' });
+            return;
+        }
+
+        setIsUploading(true);
+        setProfileMessage({ type: '', text: '' });
+
+        try {
+            // 读取文件为 DataURL
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setCropImageSrc(event.target?.result as string);
+                setIsUploading(false);
+            };
+            reader.onerror = () => {
+                setProfileMessage({ type: 'error', text: '文件读取失败' });
+                setIsUploading(false);
+            };
+            reader.readAsDataURL(file);
+        } catch (error: any) {
+            setProfileMessage({ type: 'error', text: error.message });
+            setIsUploading(false);
+        } finally {
+            // 清空 input 以便重复选择同一文件
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
+    // Handle Crop Confirm - 裁剪完成回调
+    const handleCropConfirm = (croppedImage: string) => {
+        setImage(croppedImage);
+        setCropImageSrc(null);
+        setProfileMessage({ type: 'success', text: '头像已裁剪，请点击保存修改' });
+    };
 
     // Handle Profile Update
     const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -112,26 +220,46 @@ export default function SettingsPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1.5 text-zinc-600 dark:text-zinc-400">头像 URL</label>
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <input
-                                        type="url"
-                                        value={image}
-                                        onChange={(e) => setImage(e.target.value)}
-                                        className="w-full px-4 py-2 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--input-text)] placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                                        placeholder="https://..."
-                                    />
-                                </div>
-                                <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden shrink-0 border border-zinc-200 dark:border-zinc-700">
+                            <label className="block text-sm font-medium mb-1.5 text-zinc-600 dark:text-zinc-400">头像</label>
+                            <div className="flex items-center gap-4">
+                                {/* 头像预览 */}
+                                <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden shrink-0 border-2 border-zinc-200 dark:border-zinc-700 relative">
                                     {image ? (
                                         <img src={image} alt="Avatar" className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs">?</div>
+                                        <div className="w-full h-full flex items-center justify-center text-zinc-400 text-2xl">
+                                            {name?.charAt(0).toUpperCase() || '?'}
+                                        </div>
+                                    )}
+                                    {isUploading && (
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
                                     )}
                                 </div>
+
+                                {/* 上传按钮 */}
+                                <div className="flex-1">
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/gif,image/webp"
+                                        onChange={handleAvatarChange}
+                                        className="hidden"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isUploading}
+                                        className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                                    >
+                                        {isUploading ? '处理中...' : '选择头像'}
+                                    </button>
+                                    <p className="text-xs text-zinc-400 mt-1.5">
+                                        支持 JPG、PNG、GIF、WebP，图片会自动压缩
+                                    </p>
+                                </div>
                             </div>
-                            <p className="text-xs text-zinc-400 mt-1">目前支持图片链接，您可以上传到图床后填入。</p>
                         </div>
 
                         {profileMessage.text && (
@@ -210,6 +338,15 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Avatar Crop Modal */}
+            {cropImageSrc && (
+                <AvatarCropModal
+                    imageSrc={cropImageSrc}
+                    onClose={() => setCropImageSrc(null)}
+                    onConfirm={handleCropConfirm}
+                />
+            )}
         </div>
     );
 }
