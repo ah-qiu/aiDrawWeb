@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Image as ImageIcon, Sparkles, CreditCard, LayoutDashboard, Menu, X, User, LogOut } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 
 const NAV_ITEMS = [
@@ -19,6 +19,21 @@ export function Sidebar() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const { data: session } = useSession();
+    const [avatar, setAvatar] = useState<string | null>(null);
+
+    // 如果 session 中头像是 __BASE64__ 标记，则从 API 获取实际头像
+    useEffect(() => {
+        if (session?.user?.image === '__BASE64__') {
+            fetch('/api/user/avatar')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.image) setAvatar(data.image);
+                })
+                .catch(console.error);
+        } else if (session?.user?.image && session.user.image !== '__BASE64__') {
+            setAvatar(session.user.image);
+        }
+    }, [session?.user?.image]);
 
     const toggleSidebar = () => setIsOpen(!isOpen);
 
@@ -102,9 +117,9 @@ export function Sidebar() {
                             onClick={() => setIsOpen(false)}
                             className="flex items-center gap-3 px-3 py-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 mb-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
                         >
-                            {session.user.image ? (
+                            {avatar && avatar !== '__BASE64__' ? (
                                 <img
-                                    src={session.user.image}
+                                    src={avatar}
                                     alt={session.user.name || '用户头像'}
                                     className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500/20"
                                 />

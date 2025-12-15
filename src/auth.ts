@@ -101,7 +101,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 if (dbUser) {
                     session.user.name = dbUser.name;
-                    session.user.image = dbUser.image;
+                    // 只有非 Base64 的图片 URL 才放入 session，避免 cookie 过大
+                    if (dbUser.image && !dbUser.image.startsWith('data:')) {
+                        session.user.image = dbUser.image;
+                    } else {
+                        // Base64 图片标记为需要单独获取
+                        session.user.image = dbUser.image ? '__BASE64__' : null;
+                    }
                 }
             }
             return session;
