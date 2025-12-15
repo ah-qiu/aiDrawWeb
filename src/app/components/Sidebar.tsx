@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Home, Image as ImageIcon, Sparkles, CreditCard, LayoutDashboard, Menu, X, User, LogOut } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { useState } from 'react';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 
 const NAV_ITEMS = [
     { label: '工作台', href: '/dashboard', icon: LayoutDashboard },
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
 export function Sidebar() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
+    const { data: session } = useSession();
 
     const toggleSidebar = () => setIsOpen(!isOpen);
 
@@ -94,6 +95,35 @@ export function Sidebar() {
 
                 {/* Bottom Section */}
                 <div className="p-4 border-t border-zinc-200/50 dark:border-zinc-800/50">
+                    {/* User Info */}
+                    {session?.user && (
+                        <Link
+                            href="/settings"
+                            onClick={() => setIsOpen(false)}
+                            className="flex items-center gap-3 px-3 py-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 mb-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                        >
+                            {session.user.image ? (
+                                <img
+                                    src={session.user.image}
+                                    alt={session.user.name || '用户头像'}
+                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500/20"
+                                />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold">
+                                    {session.user.name?.charAt(0).toUpperCase() || 'U'}
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                                    {session.user.name || '用户'}
+                                </p>
+                                <p className="text-xs text-zinc-500 truncate">
+                                    {session.user.email}
+                                </p>
+                            </div>
+                        </Link>
+                    )}
+
                     <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 mb-4">
                         <span className="text-xs text-zinc-500 font-medium">切换主题</span>
                         <ThemeToggle />

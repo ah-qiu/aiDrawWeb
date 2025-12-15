@@ -13,9 +13,34 @@ export async function PUT(req: Request) {
 
         const { name, image } = await req.json();
 
-        // 验证数据
+        // 验证昵称
         if (!name || name.trim().length === 0) {
             return NextResponse.json({ error: '昵称不能为空' }, { status: 400 });
+        }
+
+        // 验证头像（如果提供）
+        if (image) {
+            // 检查是否是 Base64 格式或 URL
+            const isBase64 = image.startsWith('data:image/');
+            const isUrl = image.startsWith('http://') || image.startsWith('https://');
+
+            if (!isBase64 && !isUrl) {
+                return NextResponse.json({ error: '无效的头像格式' }, { status: 400 });
+            }
+
+            // 如果是 Base64，检查大小（300KB 编码后约对应 200KB 原始数据）
+            if (isBase64 && image.length > 300 * 1024) {
+                return NextResponse.json({ error: '头像图片过大，请重新选择' }, { status: 400 });
+            }
+
+            // 如果是 Base64，验证 MIME 类型
+            if (isBase64) {
+                const mimeMatch = image.match(/^data:(image\/[^;]+);base64,/);
+                const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!mimeMatch || !allowedMimes.includes(mimeMatch[1])) {
+                    return NextResponse.json({ error: '不支持的图片格式' }, { status: 400 });
+                }
+            }
         }
 
         // 检查昵称唯一性 (排除自己)
